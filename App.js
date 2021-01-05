@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import React, {useState} from 'react';
-import AppLoading from 'expo';
+import React, {useState, useEffect} from 'react';
+import {AsyncStorage} from 'react-native';
 import { AntDesign } from '@expo/vector-icons'; 
 import { useFonts, Lato_900Black } from '@expo-google-fonts/lato';
 import { StyleSheet, Text, View, ImageBackground, TouchableOpacity, TouchableHighlight, Modal, ScrollView, TextInput } from 'react-native';
@@ -15,10 +15,7 @@ export default function App() {
   const image = require('./images/bg.jpg');
 
   //Array com as Tarefas
-  const [tarefas, setarTarefas] = useState([
-   
-    
-  ]);
+  const [tarefas, setarTarefas] = useState([]);
 
   const [modal, setModal] = useState(false);
   const [tarefaAtual,setTarefaAtual] = useState('');
@@ -28,6 +25,22 @@ export default function App() {
   let [fontsLoaded] = useFonts({
     Lato_900Black,
   });
+
+  useEffect(()=>{
+    
+    (async () => {
+      try {
+        let tarefasAtual = await AsyncStorage.getItem('tarefas');
+        if(tarefasAtual == null)
+          setarTarefas([]);
+        else
+          setarTarefas(JSON.parse(tarefasAtual));
+      } catch (error) {
+        // Error saving data
+      }
+    })();
+    
+},[])
 
   //Caso a fonte não renderizar, aparece esse Text, para informar que enta Carregando
   if (!fontsLoaded) {
@@ -41,6 +54,15 @@ export default function App() {
       return val.id != id;
     });
     setarTarefas(newTarefas);
+
+    (async () => {
+      try {
+        await AsyncStorage.setItem('tarefas', JSON.stringify(newTarefas));
+        //console.log('chamado');
+      } catch (error) {
+        // Error saving data
+      }
+    })();
   }
 
   //Função ultilizada para Adicionar uma tarefa
@@ -56,7 +78,16 @@ export default function App() {
     let tarefa = {id:id,tarefa:tarefaAtual};
 
     setarTarefas([...tarefas,tarefa]);
-    
+
+   
+
+    (async () => {
+      try {
+        await AsyncStorage.setItem('tarefas', JSON.stringify([...tarefas,tarefa]));
+      } catch (error) {
+        // Error saving data
+      }
+    })();
     
   }
   
@@ -69,31 +100,26 @@ export default function App() {
         <Modal
           animationType="slide"
           transparent={true}
-          visible={modal}
-          onRequestClose={() => {
-            Alert.alert('Modal has been closed.');
-          }}>
+          visible={modal}>
           <View style={styles.centeredView}>
             <View style={styles.modalView}>
+              <ScrollView style={{width:'100%'}}>
+                <TextInput  multiline={true} onChangeText={
+                  text => setTarefaAtual(text)
+                } autoFocus={true} ></TextInput>
 
-              <TextInput onChangeText={
-                text => setTarefaAtual(text)
-              } autoFocus={true} ></TextInput>
-
+                
+              </ScrollView>
               <TouchableHighlight
-                style={{ ...styles.openButton, backgroundColor: "#2196F3" }}
-                onPress={() => 
-                (setarTarefas() != '')
-                ? 
-                  addTarefa()
-                :
-                  alert('adiciione uma tarefas')
-                }
-              >
+                  style={{ ...styles.openButton, backgroundColor: "#2196F3" }}
+                  onPress={() => 
+                    addTarefa()
+                  }
+                >
 
-                <Text style={styles.textStyle}>Adicionar Tarefa</Text>
+                  <Text style={styles.textStyle}>Adicionar Tarefa</Text>
 
-              </TouchableHighlight>
+                </TouchableHighlight>
             </View>
           </View>
         </Modal>
@@ -179,7 +205,9 @@ const styles = StyleSheet.create({
     margin: 20,
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 35,
+    padding: 20,
+    width:'80%',
+    height:"50%",
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
